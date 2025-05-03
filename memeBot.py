@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials, db
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # Загружаем переменные окружения
 load_dotenv()
@@ -31,11 +32,28 @@ firebase_admin.initialize_app(cred, {
 
 ref = db.reference('/memes')  # ссылка на базу данных
 
+class DummyHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+def run_dummy_server():
+    port = int(os.getenv("PORT", 10000))
+    server = HTTPServer(('0.0.0.0', port), DummyHandler)
+    print(f"Dummy server running on port {port}")
+    server.serve_forever()
+
+if __name__ == "__main__":
+    # Запускаем dummy сервер в отдельном потоке
+    import threading
+    threading.Thread(target=run_dummy_server, daemon=True).start()
+
 # Получаем токен
 TOKEN = os.getenv("TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Я Meme Maestro! Кидай рилсы/шортсы или видео с подписью 'savememe', я сохраню через 5 сек. Пиши 'Скука' для случайного мема!")
+    await update.message.reply_text("Я Meme Maestro! Кидай рилсы/шортсы или видео с подписью 'save', я сохраню через пару минут. Пиши 'Скука' для случайного мема!")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     allowed_domains = ["https://www.ddinstagram", "https://www.youtube.com/shorts", "https://youtube.com/shorts"]
