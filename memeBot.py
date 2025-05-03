@@ -45,7 +45,6 @@ def run_dummy_server():
     server.serve_forever()
 
 if __name__ == "__main__":
-    # Запускаем dummy сервер в отдельном потоке
     import threading
     threading.Thread(target=run_dummy_server, daemon=True).start()
 
@@ -58,23 +57,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     allowed_domains = ["https://www.ddinstagram", "https://www.youtube.com/shorts", "https://youtube.com/shorts"]
     text = update.message.text or update.message.caption or ""  # Проверяем текст и подпись к видео
-    
-    # Проверка на savememe или домены
+
     savememe_found = re.search(r"save", text, re.IGNORECASE) is not None
     domain_found = any(domain in text for domain in allowed_domains)
-    
-    # Проверяем наличие видео
+
     has_video = update.message.video is not None
     
-    if (domain_found or (savememe_found and has_video)):  # Сохраняем только если есть savememe и видео или домен
+    if (domain_found or (savememe_found and has_video)):
         meme_data = {
             "chat_id": update.message.chat_id,
             "message_id": update.message.message_id,
             "author": update.message.from_user.username or update.message.from_user.first_name
         }
         await asyncio.sleep(120)  # Задержка перед сохранением
-        
-        # Проверяем, существует ли сообщение, копируя его в группу для логов
+
         bot_chat_id = -1002639508484  # ID вашей группы для логов
         try:
             copied_message = await context.bot.copy_message(
@@ -97,9 +93,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         except Exception as e:
             print(f"Сообщение удалено или недоступно: {e}")
             return  # Прерываем выполнение, если сообщение удалено
-    
-    # Реакция на "Скука"
-    if "скука" in text.lower():
+
+    if "скука" in text.lower(): # "Реакция на сообщение"
         snapshot = ref.get()
         if snapshot:
             memes = list(snapshot.values())
