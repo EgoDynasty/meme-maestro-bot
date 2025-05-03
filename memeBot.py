@@ -54,6 +54,54 @@ TOKEN = os.getenv("TOKEN")
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Я Meme Maestro! Кидай рилсы/шортсы или видео с подписью 'save', я сохраню через пару минут. Пиши 'Скука' для случайного мема!")
 
+async def get_meme(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = update.message.text
+    match = re.match(r"!get meme (-?\d+) (\d+)", text)
+    if not match:
+        await update.message.reply_text("Используйте: !get meme <chat_id> <message_id>")
+        return
+    
+    chat_id, message_id = map(int, match.groups())
+    snapshot = ref.get()
+    
+    if snapshot:
+        for meme_id, meme in snapshot.items():
+            if meme["chat_id"] == chat_id and meme["message_id"] == message_id:
+                try:
+                    await context.bot.forward_message(
+                        chat_id=update.message.chat_id,
+                        from_chat_id=chat_id,
+                        message_id=message_id
+                    )
+                    await update.message.reply_text(f"Мем от @{meme['author']}!\nID: {message_id}")
+                    return
+                except Exception as e:
+                    await update.message.reply_text(f"Не смог переслать мем: {str(e)}")
+                    return
+    await update.message.reply_text("Мем не найден в базе!")
+
+async def del_meme(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = update.message.text
+    match = re.match(r"!del meme (-?\d+) (\d+)", text)
+    if not match:
+        await update.message.reply_text("Используйте: !del meme <chat_id> <message_id>")
+        return
+    
+    chat_id, message_id = map(int, match.groups())
+    snapshot = ref.get()
+    
+    if snapshot:
+        for meme_id, meme in snapshot.items():
+            if meme["chat_id"] == chat_id and meme["message_id"] == message_id:
+                try:
+                    ref.child(meme_id).delete()
+                    await update.message.reply_text(f"Мем с ID {message_id} удален из базы!")
+                    return
+                except Exception as e:
+                    await update.message.reply_text(f"Ошибка при удалении мема: {str(e)}")
+                    return
+    await update.message.reply_text("Мем не найден в базе!")
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     allowed_domains = ["https://www.ddinstagram", "https://www.youtube.com/shorts", "https://youtube.com/shorts"]
     text = update.message.text or update.message.caption or ""  # Проверяем текст и подпись к видео
@@ -69,7 +117,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "message_id": update.message.message_id,
             "author": update.message.from_user.username or update.message.from_user.first_name
         }
-        await asyncio.sleep(120)  # Задержка перед сохранением
+        await asyncio.sleep(5)  # Задержка перед сохранением
 
         bot_chat_id = -1002639508484  # ID вашей группы для логов
         try:
@@ -105,7 +153,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     from_chat_id=meme["chat_id"],
                     message_id=meme["message_id"]
                 )
-                await update.message.reply_text(f"Мем от @{meme['author']}!")
+                await update.message.reply_text(f"Мем от @{meme['author']}!\nID: {meme['message_id']}")
             except Exception as e:
                 await update.message.reply_text(f"Не смог переслать мем: {str(e)}")
         else:
@@ -114,6 +162,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 def main():
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.Regex(r'^!get meme\s+-?\d+\s+\d+'), get_meme))
+    app.add_handler(MessageHandler(filters.Regex(r'^!del meme\s+-?\d+\s+\d+'), del_meme))
     app.add_handler(MessageHandler(filters.TEXT | filters.VIDEO, handle_message))
     app.run_polling()
 
