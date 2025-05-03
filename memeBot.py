@@ -38,6 +38,10 @@ class DummyHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"OK")
 
+    def do_HEAD(self):
+        self.send_response(200)
+        self.end_headers()
+
 def run_dummy_server():
     port = int(os.getenv("PORT", 10000))
     server = HTTPServer(('0.0.0.0', port), DummyHandler)
@@ -117,7 +121,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "message_id": update.message.message_id,
             "author": update.message.from_user.username or update.message.from_user.first_name
         }
-        await asyncio.sleep(5)  # Задержка перед сохранением
+        await asyncio.sleep(120)  # Задержка перед сохранением
 
         bot_chat_id = -1002639508484  # ID вашей группы для логов
         try:
