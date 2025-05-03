@@ -4,8 +4,12 @@ import json
 import random
 import asyncio
 import re
+import os
+from dotenv import load_dotenv
 
-TOKEN = "8042122102:AAFF_vIYx-HoUPxhhbyH_Y3cADF_CC1nYmI"
+load_dotenv()  # Загружаем переменные из .env
+
+TOKEN = os.getenv("TOKEN")
 
 memes = []
 try:
@@ -37,7 +41,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "message_id": update.message.message_id,
             "author": update.message.from_user.username or update.message.from_user.first_name
         }
-        await asyncio.sleep(120)  # Задержка 120 секунд
+        await asyncio.sleep(5)  # Задержка 120 секунд
         try:
             memes.append(meme_data)
             with open("memes.json", "w", encoding="utf-8") as f:
