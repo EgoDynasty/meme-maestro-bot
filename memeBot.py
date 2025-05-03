@@ -72,11 +72,31 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "message_id": update.message.message_id,
             "author": update.message.from_user.username or update.message.from_user.first_name
         }
-        await asyncio.sleep(5)  # Задержка перед сохранением
+        await asyncio.sleep(120)  # Задержка перед сохранением
+        
+        # Проверяем, существует ли сообщение, копируя его в группу для логов
+        bot_chat_id = -1002639508484  # ID вашей группы для логов
         try:
-            ref.push(meme_data)  # Сохраняем в Firebase
+            copied_message = await context.bot.copy_message(
+                chat_id=bot_chat_id,
+                from_chat_id=meme_data["chat_id"],
+                message_id=meme_data["message_id"],
+                disable_notification=True
+            )
+            # Если копирование удалось, сообщение существует, сохраняем в Firebase
+            try:
+                ref.push(meme_data)
+                print(f"Мем сохранен: {meme_data}")
+            except Exception as e:
+                print(f"Ошибка при сохранении в Firebase: {e}")
+            # Удаляем скопированное сообщение
+            await context.bot.delete_message(
+                chat_id=bot_chat_id,
+                message_id=copied_message.message_id
+            )
         except Exception as e:
-            print(f"Ошибка при сохранении в Firebase: {e}")
+            print(f"Сообщение удалено или недоступно: {e}")
+            return  # Прерываем выполнение, если сообщение удалено
     
     # Реакция на "Скука"
     if "скука" in text.lower():
