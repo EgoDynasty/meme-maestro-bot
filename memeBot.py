@@ -171,7 +171,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "message_id": update.message.message_id,
             "author": update.message.from_user.username or update.message.from_user.first_name
         }
-        await asyncio.sleep(10)
+        await asyncio.sleep(60)
 
         bot_chat_id = -1002639508484
         try:
