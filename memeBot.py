@@ -12,6 +12,15 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 # Загружаем переменные окружения
 load_dotenv()
 
+# Сохраняем cookies в файл, если они установлены
+cookies = os.getenv("YOUTUBE_COOKIES")
+if cookies:
+    with open("/tmp/cookies.txt", "w") as f:
+        f.write(cookies)
+    print("Cookies сохранены в /tmp/cookies.txt")
+else:
+    print("Предупреждение: YOUTUBE_COOKIES не установлены")
+
 # Инициализируем Firebase
 cred = credentials.Certificate({
     "type": "service_account",
@@ -49,14 +58,16 @@ def run_dummy_server():
     print(f"Dummy server running on port {port}")
     server.serve_forever()
 
-# Функция для скачивания YouTube Shorts
+# Функция для скачивания YouTube Shorts с использованием cookies
 async def download_youtube_shorts(url: str, output_path: str = "video.mp4") -> str:
     ydl_opts = {
         'format': 'best',
         'outtmpl': output_path,
         'quiet': True,
+        'cookiefile': '/tmp/cookies.txt',  # Используем cookies для аутентификации
     }
     try:
+        print("Используем cookies для скачивания видео")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
         return output_path
@@ -125,7 +136,6 @@ async def get_meme(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                                 f"Не удалось скачать видео. Мем от @{meme['author']}!\nID: {message_id}"
                             )
                     else:
-                        # Если нет Shorts, оставляем форвард
                         await update.message.reply_text(f"Мем от @{meme['author']}!\nID: {message_id}")
                     return
                 except Exception as e:
@@ -200,13 +210,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             memes = list(snapshot.values())
             meme = random.choice(memes)
             try:
-                # Пересылаем мем
                 forwarded_message = await context.bot.forward_message(
                     chat_id=update.message.chat_id,
                     from_chat_id=meme["chat_id"],
                     message_id=meme["message_id"]
                 )
-                # Проверяем, есть ли YouTube Shorts
                 forwarded_text = forwarded_message.caption or forwarded_message.text or ""
                 shorts_url = None
                 for domain in ["https://www.youtube.com/shorts", "https://youtube.com/shorts"]:
@@ -226,7 +234,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                                 video=video_file,
                                 caption=f"Мем от @{meme['author']}!\nID: {meme['message_id']}"
                             )
-                        # Удаляем форвард и сообщение о загрузке
                         await context.bot.delete_message(
                             chat_id=update.message.chat_id,
                             message_id=forwarded_message.message_id
